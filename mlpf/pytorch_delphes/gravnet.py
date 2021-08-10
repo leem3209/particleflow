@@ -9,9 +9,10 @@ from torch_scatter import scatter
 from torch_geometric.nn.conv import MessagePassing
 
 try:
-    from torch_cluster import knn
+    from torch_cmspepr import knn_graph
 except ImportError:
-    knn = None
+    knn_graph = None
+knn = knn_graph
 
 # copied it from pytorch_geometric source code
 # ADDED: retrieve edge_index, retrieve edge_weight
@@ -93,8 +94,8 @@ class GravNetConv(MessagePassing):
         s_l: Tensor = self.lin_s(x[0])
         s_r: Tensor = self.lin_s(x[1]) if is_bipartite else s_l
 
-        edge_index = knn(s_l, s_r, self.k, b[0], b[1],
-                         num_workers=self.num_workers)
+        edge_index = knn(s_l, self.k, b[0])#, b[1],
+#                          num_workers=self.num_workers)
 
         edge_weight = (s_l[edge_index[1]] - s_r[edge_index[0]]).pow(2).sum(-1)
         edge_weight = torch.exp(-10. * edge_weight)  # 10 gives a better spread
@@ -113,7 +114,7 @@ class GravNetConv(MessagePassing):
     def aggregate(self, inputs: Tensor, index: Tensor,
                   dim_size: Optional[int] = None) -> Tensor:
         out_mean = scatter(inputs, index, dim=self.node_dim, dim_size=dim_size,
-                           reduce='sum')
+                           reduce='mean') #change sum to mean
         return out_mean
 
     def __repr__(self):
